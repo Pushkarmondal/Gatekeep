@@ -18,6 +18,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
     "fastify": "^5.7.4",
+    "fastify-type-provider-zod": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.18.0"
   }

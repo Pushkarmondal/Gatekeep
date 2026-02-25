@@ -1,18 +1,14 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "../../db";
 import * as bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 
-export async function registerUserHandler(request: FastifyRequest, reply: FastifyReply) {
+export async function registerUserHandler(request:any, reply:any) {
     try {
-        const {email, passwordHash} = request.body as {
-            email: string;
-            passwordHash: string;
-        };
-        if(!email || !passwordHash) {
+        const {email, password} = request.body
+        if(!email || !password) {
             return reply.status(400).send({ error: "Email and password are required!" });
         }
-        const hashedPassword = await bcrypt.hash(passwordHash, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const registerUser = await prisma.user.create({
             data: {
                 email,
@@ -29,13 +25,10 @@ export async function registerUserHandler(request: FastifyRequest, reply: Fastif
     }
 }
 
-export async function loginUserHandler(request: FastifyRequest, reply: FastifyReply) {
+export async function loginUserHandler(request:any, reply:any) {
     try {
-        const {email, passwordHash} = request.body as {
-            email: string;
-            passwordHash: string;
-        };
-        if(!email || !passwordHash) {
+        const {email, password} = request.body
+        if(!email || !password) {
             return reply.status(400).send({ error: "Email and password are required!" });
         }
         const user = await prisma.user.findUnique({
@@ -46,7 +39,7 @@ export async function loginUserHandler(request: FastifyRequest, reply: FastifyRe
         if(!user) {
             return reply.status(404).send({ error: "User not found!"  });
         }
-        const isPasswordValid = await bcrypt.compare(passwordHash, user.passwordHash!);
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash!);
         if(!isPasswordValid) {
             return reply.status(401).send({ error: "Invalid password!"  });
         }
