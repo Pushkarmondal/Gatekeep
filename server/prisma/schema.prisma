@@ -7,6 +7,95 @@ datasource db {
   provider = "postgresql"
 }
 
+// enum SubscriptionStatus {
+//   ACTIVE
+//   PAST_DUE
+//   CANCELED
+//   INCOMPLETE
+//   TRIALING
+// }
+
+// model User {
+//   id               String   @id @default(uuid())
+//   email            String   @unique
+//   stripeCustomerId String?  @unique
+//   createdAt        DateTime @default(now())
+//   updatedAt        DateTime @updatedAt
+
+//   apiKeys       ApiKey[]
+//   subscriptions Subscription[]
+//   usageRecord   UsageRecord[]
+// }
+
+// model ApiKey {
+//   id         String    @id @default(uuid())
+//   name       String
+//   keyHash    String    @unique
+//   lastUsedAt DateTime?
+//   revoked    Boolean   @default(false)
+//   createdAt  DateTime  @default(now())
+
+//   userId String
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@index([userId])
+// }
+
+// model Plan {
+//   id                 String  @id @default(uuid())
+//   name               String  @unique
+//   monthlyQuota       Int // total allowed requests per month
+//   rateLimitPerMinute Int
+//   priceInCents       Int
+//   stripePriceId      String? @unique
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   subscriptions Subscription[]
+// }
+
+// model Subscription {
+//   id                   String             @id @default(uuid())
+//   stripeSubscriptionId String             @unique
+//   status               SubscriptionStatus
+//   currentPeriodStart   DateTime
+//   currentPeriodEnd     DateTime
+
+//   userId String
+//   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   planId String
+//   plan   Plan   @relation(fields: [planId], references: [id])
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@index([userId])
+// }
+
+// model UsageRecord {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   period    String // e.g. "2026-02"
+//   count     Int
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+//   @@unique([userId, period])
+// }
+
+// model WebhookEvent {
+//   id            String   @id @default(uuid())
+//   stripeEventId String   @unique
+//   processed     Boolean  @default(false)
+//   payload       Json
+//   createdAt     DateTime @default(now())
+// }
+
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -16,15 +105,45 @@ enum SubscriptionStatus {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  stripeCustomerId String?  @unique
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  passwordHash         String?
+  emailVerified        Boolean  @default(false)
 
-  apiKeys       ApiKey[]
-  subscriptions Subscription[]
-  usageRecord   UsageRecord[]
+  stripeCustomerId     String?  @unique
+
+  activeSubscriptionId String?  @unique
+  activeSubscription   Subscription? @relation("ActiveSubscription", fields: [activeSubscriptionId], references: [id])
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  apiKeys              ApiKey[]
+  subscriptions        Subscription[]
+  usageRecords         UsageRecord[]
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  stripeSubscriptionId String             @unique
+  status               SubscriptionStatus
+
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId               String
+  plan                 Plan               @relation(fields: [planId], references: [id])
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  activeUser           User? @relation("ActiveSubscription")
+  
+  @@index([userId])
+  @@index([userId, status])
 }
 
 model ApiKey {
@@ -35,62 +154,48 @@ model ApiKey {
   revoked    Boolean   @default(false)
   createdAt  DateTime  @default(now())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([revoked])
 }
 
 model Plan {
-  id                 String  @id @default(uuid())
-  name               String  @unique
-  monthlyQuota       Int // total allowed requests per month
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  monthlyQuota       Int
   rateLimitPerMinute Int
   priceInCents       Int
-  stripePriceId      String? @unique
+  stripePriceId      String?  @unique
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active             Boolean  @default(true)
 
-  subscriptions Subscription[]
-}
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-model Subscription {
-  id                   String             @id @default(uuid())
-  stripeSubscriptionId String             @unique
-  status               SubscriptionStatus
-  currentPeriodStart   DateTime
-  currentPeriodEnd     DateTime
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  planId String
-  plan   Plan   @relation(fields: [planId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
+  subscriptions      Subscription[]
 }
 
 model UsageRecord {
   id        String   @id @default(uuid())
   userId    String
-  period    String // e.g. "2026-02"
+  period    String   // format: YYYY-MM
   count     Int
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, period])
+  @@index([userId])
 }
 
 model WebhookEvent {
-  id            String   @id @default(uuid())
-  stripeEventId String   @unique
-  processed     Boolean  @default(false)
-  payload       Json
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  stripeEventId  String   @unique
+  processed      Boolean  @default(false)
+  payload        Json
+  createdAt      DateTime @default(now())
 }
