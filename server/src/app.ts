@@ -1,8 +1,10 @@
 import Fastify from "fastify";
 import { registerUserHandler, loginUserHandler } from "./controller/auth.controller";
-import { loginUserSchema, registerUserSchema } from "./schema/zodSchema";
+import { createApiKeySchema, loginUserSchema, registerUserSchema } from "./schema/zodSchema";
 
 import {validatorCompiler,serializerCompiler, type ZodTypeProvider} from "fastify-type-provider-zod"
+import { createApiKey } from "./controller/apiKey.controller";
+import { authenticate } from "./middleware/middleware";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -34,21 +36,22 @@ fastify.post(
   loginUserHandler
 )
 
-
-// fastify.listen({ port: 3000 }, function (err, address) {
-//   console.log("App runnig on PORT 3000");
-//   if (err) {
-//     fastify.log.error(err);
-//     process.exit(1);
-//   }
-// });
-
+fastify.post(
+  "/api-key/create",
+  {
+    preHandler: authenticate,
+    schema: {
+      body: createApiKeySchema,
+    },
+  },
+  createApiKey
+)
 async function start() {
   try {
     const address = await fastify.listen({
       port: PORT,
     })
-    console.log(`Server running at PORT ->: ${PORT}`)
+    console.log(`Server running at PORT -> http://localhost:${PORT}`)
   } catch (err) {
     console.error("BOOT ERROR:", err)
     process.exit(1)
