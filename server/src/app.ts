@@ -5,6 +5,7 @@ import { createApiKeySchema, loginUserSchema, registerUserSchema } from "./schem
 import {validatorCompiler,serializerCompiler, type ZodTypeProvider} from "fastify-type-provider-zod"
 import { createApiKey, getApiKey } from "./controller/apiKey.controller";
 import { authenticate } from "./middleware/middleware";
+import { validateApiKey } from "./middleware/apiKeyMiddleware";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -55,6 +56,19 @@ fastify.get(
     preHandler: authenticate,
   },
   getApiKey
+)
+
+fastify.get(
+  "/protected",
+  {
+    preHandler: validateApiKey
+  },
+  async (request, reply) => {
+    return {
+      message: "Access granted",
+      userId: request.apiUser?.id
+    }
+  }
 )
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

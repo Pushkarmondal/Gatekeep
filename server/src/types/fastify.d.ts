@@ -5,5 +5,8 @@ declare module "fastify" {
     user: {
       id: string
     }
+    apiUser?: { 
+      id: string,
+    } 
   }
 }
