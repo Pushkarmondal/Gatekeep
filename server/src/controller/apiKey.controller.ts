@@ -30,3 +30,26 @@ export async function createApiKey(request: any, reply: any) {
     return reply.status(500).send({ error: "Internal server error" });
   }
 }
+
+export async function getApiKey(request: any, reply: any) {
+    try {
+        const userId = request.user.id;
+        const getApiKey = await prisma.apiKey.findMany({
+            where: {
+                userId,
+                revoked: false
+            },
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                lastUsedAt: true,
+            }
+        })
+        return reply.status(200).send({
+            apiKeys: getApiKey
+        })
+    } catch (error) {
+        return reply.status(500).send({ error: "Internal server error" });
+    }
+}

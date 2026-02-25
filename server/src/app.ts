@@ -3,7 +3,7 @@ import { registerUserHandler, loginUserHandler } from "./controller/auth.control
 import { createApiKeySchema, loginUserSchema, registerUserSchema } from "./schema/zodSchema";
 
 import {validatorCompiler,serializerCompiler, type ZodTypeProvider} from "fastify-type-provider-zod"
-import { createApiKey } from "./controller/apiKey.controller";
+import { createApiKey, getApiKey } from "./controller/apiKey.controller";
 import { authenticate } from "./middleware/middleware";
 
 const fastify = Fastify({ logger: false })
@@ -16,6 +16,8 @@ fastify.get("/", function (request, reply) {
   reply.send({ hello: "world" });
 });
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Auth Routes
 fastify.post(
   "/auth/register",
   {
@@ -46,6 +48,16 @@ fastify.post(
   },
   createApiKey
 )
+
+fastify.get(
+  "/api-key/get",
+  {
+    preHandler: authenticate,
+  },
+  getApiKey
+)
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 async function start() {
   try {
     const address = await fastify.listen({
