@@ -6,6 +6,8 @@ import {validatorCompiler,serializerCompiler, type ZodTypeProvider} from "fastif
 import { createApiKey, getApiKey } from "./controller/apiKey.controller";
 import { authenticate } from "./middleware/middleware";
 import { validateApiKey } from "./middleware/apiKeyMiddleware";
+import { enforceLimits } from "./middleware/enforceLimits";
+import { redis } from "./redisconnection/connection";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -61,7 +63,7 @@ fastify.get(
 fastify.get(
   "/protected",
   {
-    preHandler: validateApiKey
+    preHandler: [validateApiKey, enforceLimits]
   },
   async (request, reply) => {
     return {
@@ -74,6 +76,7 @@ fastify.get(
 
 async function start() {
   try {
+    await redis.connect()
     const address = await fastify.listen({
       port: PORT,
     })
