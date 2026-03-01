@@ -42,9 +42,9 @@ export async function getUserPlan(userId: string): Promise<PlanSnapshot> {
     monthlyQuota: subscription.plan.monthlyQuota,
   }
 
-  // 3️⃣ Cache for 5 minutes
+  // 3️⃣ Cache for 10 minutes
   await redis.set(cacheKey, JSON.stringify(snapshot), {
-    EX: 60 * 5,
+    EX: 60 * 10,
   })
 
   return snapshot
