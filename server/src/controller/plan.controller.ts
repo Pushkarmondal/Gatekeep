@@ -93,3 +93,43 @@ export async function createSubscription(request: any, reply: any) {
         return reply.status(500).send({ error: "Failed to create subscription" })
     }
 }
+
+
+
+export async function getUserPlanSample(userId: string) {
+  const subscription = await prisma.subscription.findFirst({
+    where: { userId },
+    include: { plan: true },
+  })
+
+  if (!subscription) {
+    throw new Error("NO_SUBSCRIPTION")
+  }
+
+  const now = new Date()
+
+  if (subscription.status === "INCOMPLETE") {
+    throw new Error("SUBSCRIPTION_INVALID")
+  }
+
+  if (subscription.status === "CANCELED") {
+    if (now > subscription.currentPeriodEnd) {
+      throw new Error("SUBSCRIPTION_EXPIRED")
+    }
+  }
+
+  if (subscription.status === "PAST_DUE") {
+    const gracePeriodDays = 3
+    const graceLimit = new Date(subscription.currentPeriodEnd)
+    graceLimit.setDate(graceLimit.getDate() + gracePeriodDays)
+
+    if (now > graceLimit) {
+      throw new Error("SUBSCRIPTION_EXPIRED")
+    }
+  }
+
+  return {
+    rateLimitPerMinute: subscription.plan.rateLimitPerMinute,
+    monthlyQuota: subscription.plan.monthlyQuota,
+  }
+}

@@ -44,3 +44,15 @@ export const stripeWebhookSchema = z.object({
     object: z.any()
   })
 })
+
+export const updateSubscriptionSchema = z.object({
+  userId: z.uuid(),
+  status: z.enum([
+    "ACTIVE",
+    "PAST_DUE",
+    "CANCELED",
+    "INCOMPLETE",
+    "TRIALING",
+  ]),
+  planId: z.uuid().optional(),
+})

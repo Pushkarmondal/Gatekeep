@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import { registerUserHandler, loginUserHandler } from "./controller/auth.controller";
-import { createApiKeySchema, loginUserSchema, registerUserSchema } from "./schema/zodSchema";
+import { createApiKeySchema, loginUserSchema, registerUserSchema, updateSubscriptionSchema } from "./schema/zodSchema";
 
 import {validatorCompiler,serializerCompiler, type ZodTypeProvider} from "fastify-type-provider-zod"
 import { createApiKey, getApiKey } from "./controller/apiKey.controller";
@@ -9,6 +9,7 @@ import { validateApiKey } from "./middleware/apiKeyMiddleware";
 import { enforceLimits } from "./middleware/enforceLimits";
 import { redis } from "./redisconnection/connection";
 import { syncUsageToDB } from "./jobs/usageSync";
+import { updateSubscriptionHandler } from "./controller/internalSubscription.controller";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -72,6 +73,15 @@ fastify.get(
       userId: request.apiUser?.id
     }
   }
+)
+
+fastify.post(
+  "/internal/subscription/update",
+  {
+    preHandler: authenticate,
+    schema: { body: updateSubscriptionSchema },
+  },
+  updateSubscriptionHandler
 )
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
