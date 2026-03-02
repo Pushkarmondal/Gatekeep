@@ -8,6 +8,7 @@ import { authenticate } from "./middleware/middleware";
 import { validateApiKey } from "./middleware/apiKeyMiddleware";
 import { enforceLimits } from "./middleware/enforceLimits";
 import { redis } from "./redisconnection/connection";
+import { syncUsageToDB } from "./jobs/usageSync";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -81,6 +82,14 @@ async function start() {
       port: PORT,
     })
     console.log(`Server running at PORT -> http://localhost:${PORT}`)
+
+    // 🔥 Background job
+    setInterval(async () => {
+      await syncUsageToDB().catch((err) => {
+        console.error("Usage sync failed:", err)
+      })
+    }, 5 * 60 * 1000)
+
   } catch (err) {
     console.error("BOOT ERROR:", err)
     process.exit(1)
