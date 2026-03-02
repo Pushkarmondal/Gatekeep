@@ -1,6 +1,7 @@
 // import { redis } from "../redisconnection/connection";
 
 import { getUserPlan } from "../controller/plan.controller"
+import { incrementMetric } from "../lib/metrics"
 import { redis } from "../redisconnection/connection"
 
 // export function getCurrentMinuteKey(userId: string) {
@@ -70,6 +71,7 @@ function getCurrentMonthKey(userId: string) {
 
 export async function enforceLimits(request: any, reply: any) {
   try {
+    await incrementMetric("total_requests")
     const userId = request.apiUser?.id
 
     if (!userId) {
@@ -89,6 +91,13 @@ export async function enforceLimits(request: any, reply: any) {
     }
 
     if (currentRate > plan.rateLimitPerMinute) {
+      await incrementMetric("rate_limit_hits")
+
+      request.log.info({
+        userId,
+        decision: "BLOCKED",
+        reason: "RATE_LIMIT",
+      })
       return reply.status(429).send({ error: "Rate limit exceeded" })
     }
 
@@ -102,11 +111,19 @@ export async function enforceLimits(request: any, reply: any) {
     }
 
     if (currentUsage > plan.monthlyQuota) {
+      await incrementMetric("quota_exceeded")
+
+      request.log.info({
+        userId,
+        decision: "BLOCKED",
+        reason: "QUOTA_EXCEEDED",
+      })
       return reply.status(402).send({ error: "Monthly quota exceeded" })
     }
 
   } catch (err: any) {
     if (err.message === "NO_ACTIVE_SUBSCRIPTION") {
+      await incrementMetric("subscription_blocked")
       return reply.status(403).send({ error: "No active subscription" })
     }
 

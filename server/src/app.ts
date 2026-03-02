@@ -10,6 +10,7 @@ import { enforceLimits } from "./middleware/enforceLimits";
 import { redis } from "./redisconnection/connection";
 import { syncUsageToDB } from "./jobs/usageSync";
 import { updateSubscriptionHandler } from "./controller/internalSubscription.controller";
+import { metricsHandler } from "./controller/internalMetrics.controller";
 
 const fastify = Fastify({ logger: false })
   .setValidatorCompiler(validatorCompiler)
@@ -83,6 +84,8 @@ fastify.post(
   },
   updateSubscriptionHandler
 )
+
+fastify.get("/internal/metrics", metricsHandler)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 async function start() {

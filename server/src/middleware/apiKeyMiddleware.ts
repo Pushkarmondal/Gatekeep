@@ -1,5 +1,6 @@
 import { prisma } from "../../db"
 import crypto from "crypto"
+import { incrementMetric } from "../lib/metrics"
 
 function hashApiKey(rawKey: string) {
   return crypto
@@ -12,6 +13,7 @@ export async function validateApiKey(request: any, reply: any) {
   const authHeader = request.headers.authorization
 
   if (!authHeader?.startsWith("Bearer ")) {
+    await incrementMetric("invalid_api_key")
     return reply.status(401).send({ error: "Missing API key" })
   }
 
@@ -25,6 +27,7 @@ export async function validateApiKey(request: any, reply: any) {
   })
 
   if (!apiKey || apiKey.revoked) {
+    await incrementMetric("invalid_api_key")
     return reply.status(403).send({ error: "Invalid API key" })
   }
 
